@@ -16,11 +16,11 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({ message: "Todos os campos são obrigátorios" });
         }
 
-        if (password.lengh < 6) {
+        if (password.length < 6) {
             return res.status(400).json({ message: "Password should be at least 6 characters long" });
         }
 
-        if (username.lengh < 3) {
+        if (username.length < 3) {
             return res.status(400).json({ message: "Username should be at least 3 characters long" });
         }
 
@@ -64,7 +64,33 @@ router.post("/register", async (req, res) => {
     }
 });
 router.post("/login", async (req, res) => {
-    res.send("login");
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ message: "Todos os campos são obrigátorios" });
+
+        // check if user exists
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+        // check if password is correct 
+        const isPasswordCorrect = await user.comparePassword(password);
+        if (!isPasswordCorrect) return res.status(400).json({ message: "Invalid credentials" });
+
+        // generete token
+        const token = generateToken(user._id);
+        res.status(200).json({
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                profileImage: user.profileImage
+            },
+        });
+    } catch (error) {
+        console.log("Error in login route", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 export default router;
